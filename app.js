@@ -1,59 +1,62 @@
-
 // ==========================================
 // MONACO 98.7 FM - APLICACIÓN PRINCIPAL
+// Adaptada para Cloudflare Pages
 // ==========================================
 
-const $ = s => document.querySelector(s);
+const $ = (selector) => document.querySelector(selector);
 
 const audio = $("#radioAudio");
 const playBtn = $("#playBtn");
 const statusText = $("#playerStatus");
+const equalizer = $(".equalizer");
 
-// ==========================================
-// REPRODUCTOR DE RADIO EN VIVO
-// ==========================================
-
+// Rutas de Cloudflare Pages
 const RADIO_URL = "/proxy";
+const API_URL = "/api";
 
 let userPaused = true;
 let reconnectTimer = null;
 let reconnectAttempts = 0;
 
-audio.src = RADIO_URL;
-audio.preload = "none";
+function setStatus(message) {
+  if (statusText) statusText.textContent = message;
+}
 
 function updatePlaying() {
-  playBtn.textContent = "Ⅱ";
-  playBtn.setAttribute("aria-label", "Pausar");
-  statusText.textContent = "Reproduciendo en vivo";
-  $(".equalizer").classList.add("playing");
+  if (playBtn) {
+    playBtn.textContent = "Ⅱ";
+    playBtn.setAttribute("aria-label", "Pausar");
+  }
+
+  setStatus("Reproduciendo en vivo");
+
+  if (equalizer) equalizer.classList.add("playing");
 }
 
 function updateStopped() {
-  playBtn.textContent = "▶";
-  playBtn.setAttribute("aria-label", "Reproducir");
-  $(".equalizer").classList.remove("playing");
+  if (playBtn) {
+    playBtn.textContent = "▶";
+    playBtn.setAttribute("aria-label", "Reproducir");
+  }
+
+  if (equalizer) equalizer.classList.remove("playing");
 }
 
 function cancelReconnect() {
-  if (reconnectTimer) {
+  if (reconnectTimer !== null) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
 }
 
-function reconnectRadio() {
-  if (userPaused || reconnectTimer) return;
+function scheduleReconnect() {
+  if (userPaused || reconnectTimer !== null || !audio) return;
 
   updateStopped();
-  statusText.textContent = "Reconectando con MONACO FM...";
+  setStatus("Señal interrumpida. Reconectando con MONACO FM...");
 
-  const delay = Math.min(
-    3000 * Math.pow(2, reconnectAttempts),
-    30000
-  );
-
-  reconnectAttempts++;
+  const delay = Math.min(2000 * (2 ** reconnectAttempts), 30000);
+  reconnectAttempts += 1;
 
   reconnectTimer = setTimeout(async () => {
     reconnectTimer = null;
@@ -61,68 +64,90 @@ function reconnectRadio() {
     if (userPaused) return;
 
     try {
+      audio.src = `${RADIO_URL}?_=${Date.now()}`;
       audio.load();
       await audio.play();
     } catch (error) {
-      reconnectRadio();
+      scheduleReconnect();
     }
   }, delay);
 }
 
-playBtn.addEventListener("click", async () => {
-  if (audio.paused) {
-    userPaused = false;
-    reconnectAttempts = 0;
-    cancelReconnect();
-
-    statusText.textContent = "Conectando con MONACO FM...";
-
-    try {
-      await audio.play();
-    } catch (error) {
-      statusText.textContent = "No se pudo conectar. Reintentando...";
-      reconnectRadio();
-    }
-
-  } else {
-    userPaused = true;
-    cancelReconnect();
-
-    audio.pause();
-    updateStopped();
-
-    statusText.textContent = "Reproducción pausada";
+async function startRadio() {
+  if (!audio) {
+    setStatus("No se encontró el reproductor de audio (#radioAudio).");
+    return;
   }
-});
 
-audio.addEventListener("playing", () => {
+  userPaused = false;
   reconnectAttempts = 0;
   cancelReconnect();
-  updatePlaying();
-});
+  setStatus("Conectando con MONACO 98.7 FM...");
 
-audio.addEventListener("error", () => {
-  updateStopped();
-  reconnectRadio();
-});
-
-audio.addEventListener("ended", () => {
-  reconnectRadio();
-});
-
-audio.addEventListener("stalled", () => {
-  reconnectRadio();
-});
-
-audio.addEventListener("waiting", () => {
-  if (!userPaused) {
-    statusText.textContent = "Esperando señal de transmisión...";
+  try {
+    audio.src = RADIO_URL;
+    audio.load();
+    await audio.play();
+  } catch (error) {
+    setStatus("No se pudo iniciar la transmisión. Reintentando...");
+    scheduleReconnect();
   }
-});
+}
 
-audio.addEventListener("pause", () => {
-  if (userPaused) updateStopped();
-});
+function stopRadio() {
+  userPaused = true;
+  cancelReconnect();
+
+  if (audio) audio.pause();
+
+  updateStopped();
+  setStatus("Reproducción pausada");
+}
+
+if (audio) {
+  audio.preload = "none";
+  audio.src = RADIO_URL;
+
+  audio.addEventListener("playing", () => {
+    reconnectAttempts = 0;
+    cancelReconnect();
+    updatePlaying();
+  });
+
+  audio.addEventListener("error", () => {
+    if (!userPaused) scheduleReconnect();
+  });
+
+  audio.addEventListener("ended", () => {
+    if (!userPaused) scheduleReconnect();
+  });
+
+  audio.addEventListener("stalled", () => {
+    if (!userPaused) scheduleReconnect();
+  });
+
+  audio.addEventListener("waiting", () => {
+    if (!userPaused) setStatus("Esperando señal de transmisión...");
+  });
+
+  audio.addEventListener("pause", () => {
+    if (userPaused) updateStopped();
+  });
+}
+
+if (playBtn) {
+  playBtn.addEventListener("click", () => {
+    if (!audio) return;
+
+    if (userPaused || audio.paused) {
+      startRadio();
+    } else {
+      stopRadio();
+    }
+  });
+} else {
+  console.error("MONACO FM: no se encontró el botón #playBtn.");
+}
 
 // ==========================================
 // CARGAR NOTICIAS Y PROGRAMACIÓN
@@ -130,20 +155,28 @@ audio.addEventListener("pause", () => {
 
 async function loadPublic() {
   try {
-    const r = await fetch("/.netlify/functions/api");
-    if (!r.ok) throw new Error("Error al cargar");
+    const response = await fetch(API_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
 
-    const d = await r.json();
+    const result = await response.json();
 
-    renderNews(d.news || []);
-    renderSchedule(d.schedule || []);
+    renderNews(result.news || []);
+    renderSchedule(result.schedule || []);
+  } catch (error) {
+    const newsGrid = $("#newsGrid");
+    const scheduleList = $("#scheduleList");
 
-  } catch (e) {
-    $("#newsGrid").innerHTML =
-      '<p class="muted">No se pudieron cargar las noticias.</p>';
+    if (newsGrid) {
+      newsGrid.innerHTML =
+        '<p class="muted">No se pudieron cargar las noticias.</p>';
+    }
 
-    $("#scheduleList").innerHTML =
-      '<p class="muted">No se pudo cargar la programación.</p>';
+    if (scheduleList) {
+      scheduleList.innerHTML =
+        '<p class="muted">No se pudo cargar la programación.</p>';
+    }
+
+    console.error("MONACO FM: error cargando contenido público:", error);
   }
 }
 
@@ -152,26 +185,27 @@ async function loadPublic() {
 // ==========================================
 
 function renderNews(items) {
-  const el = $("#newsGrid");
+  const element = $("#newsGrid");
+  if (!element) return;
 
   if (!items.length) {
-    el.innerHTML =
-      '<p class="muted">Próximamente, más noticias.</p>';
+    element.innerHTML = '<p class="muted">Próximamente, más noticias.</p>';
     return;
   }
 
-  el.innerHTML = items
+  element.innerHTML = items
     .slice()
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .map(n => `
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+    .map((news) => `
       <article class="news-card">
-        ${n.image ? `<img src="${esc(n.image)}" alt="">` : ""}
+        ${news.image ? `<img src="${esc(news.image)}" alt="">` : ""}
         <div class="news-card-body">
-          <h3>${esc(n.title)}</h3>
-          <p>${esc(n.description)}</p>
+          <h3>${esc(news.title)}</h3>
+          <p>${esc(news.description)}</p>
         </div>
       </article>
-    `).join("");
+    `)
+    .join("");
 }
 
 // ==========================================
@@ -179,37 +213,38 @@ function renderNews(items) {
 // ==========================================
 
 function renderSchedule(items) {
-  const el = $("#scheduleList");
+  const element = $("#scheduleList");
+  if (!element) return;
 
   if (!items.length) {
-    el.innerHTML =
+    element.innerHTML =
       '<p class="muted">La programación será publicada próximamente.</p>';
     return;
   }
 
-  el.innerHTML = items
+  element.innerHTML = items
     .slice()
-    .sort((a, b) => a.time.localeCompare(b.time))
-    .map(p => `
+    .sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")))
+    .map((program) => `
       <div class="schedule-item">
-        <time>${esc(p.time)}</time>
-        <strong>${esc(p.title)}</strong>
+        <time>${esc(program.time)}</time>
+        <strong>${esc(program.title)}</strong>
       </div>
-    `).join("");
+    `)
+    .join("");
 }
-
 // ==========================================
 // SEGURIDAD DE TEXTO HTML
 // ==========================================
 
-function esc(v) {
-  return String(v ?? "").replace(/[&<>"']/g, c => ({
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
     "'": "&#39;"
-  }[c]));
+  })[character]);
 }
 
 // ==========================================
@@ -217,22 +252,29 @@ function esc(v) {
 // ==========================================
 
 const modal = $("#adminModal");
+const adminTrigger = $("#adminTrigger");
+const closeAdmin = $("#closeAdmin");
 
-$("#adminTrigger").onclick = () => {
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden", "false");
-};
+if (adminTrigger && modal) {
+  adminTrigger.addEventListener("click", () => {
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  });
+}
 
 function closeModal() {
+  if (!modal) return;
   modal.classList.remove("open");
   modal.setAttribute("aria-hidden", "true");
 }
 
-$("#closeAdmin").onclick = closeModal;
+if (closeAdmin) closeAdmin.addEventListener("click", closeModal);
 
-modal.addEventListener("click", e => {
-  if (e.target === modal) closeModal();
-});
+if (modal) {
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeModal();
+  });
+}
 
 // ==========================================
 // SESIÓN DE ADMINISTRADOR
@@ -246,11 +288,9 @@ let data = {
 };
 
 async function api(action, payload = {}) {
-  const r = await fetch("/.netlify/functions/api", {
+  const response = await fetch(API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action,
       password: adminKey,
@@ -258,13 +298,19 @@ async function api(action, payload = {}) {
     })
   });
 
-  const d = await r.json();
+  let result;
 
-  if (!r.ok) {
-    throw new Error(d.error || "Error");
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("La API no devolvió JSON. Revisá la función /api de Cloudflare.");
   }
 
-  return d;
+  if (!response.ok) {
+    throw new Error(result.error || `Error HTTP ${response.status}`);
+  }
+
+  return result;
 }
 
 // ==========================================
@@ -272,10 +318,8 @@ async function api(action, payload = {}) {
 // ==========================================
 
 async function refreshAdmin() {
-  const d = await api("admin-list");
-
-  data = d;
-
+  const result = await api("admin-list");
+  data = result;
   renderAdminLists();
 }
 
@@ -283,59 +327,74 @@ async function refreshAdmin() {
 // INGRESAR AL PANEL
 // ==========================================
 
-$("#loginForm").onsubmit = async e => {
-  e.preventDefault();
+const loginForm = $("#loginForm");
 
-  adminKey = $("#adminPassword").value;
+if (loginForm) {
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-  try {
-    await api("admin-list");
+    const passwordInput = $("#adminPassword");
+    const loginError = $("#loginError");
 
-    sessionStorage.setItem("monacoAdminKey", adminKey);
+    adminKey = passwordInput ? passwordInput.value : "";
 
-    $("#loginView").hidden = true;
-    $("#panelView").hidden = false;
-    $("#loginError").textContent = "";
+    try {
+      await api("admin-list");
+      sessionStorage.setItem("monacoAdminKey", adminKey);
 
-    await refreshAdmin();
+      const loginView = $("#loginView");
+      const panelView = $("#panelView");
 
-  } catch (err) {
-    $("#loginError").textContent =
-      "Contraseña incorrecta o error de conexión.";
+      if (loginView) loginView.hidden = true;
+      if (panelView) panelView.hidden = false;
+      if (loginError) loginError.textContent = "";
 
-    adminKey = "";
-  }
-};
+      await refreshAdmin();
+    } catch (error) {
+      if (loginError) {
+        loginError.textContent =
+          "Contraseña incorrecta o error de conexión con /api.";
+      }
+      adminKey = "";
+    }
+  });
+}
 
 // ==========================================
 // CERRAR SESIÓN
 // ==========================================
 
-$("#logoutBtn").onclick = () => {
-  adminKey = "";
+const logoutBtn = $("#logoutBtn");
 
-  sessionStorage.removeItem("monacoAdminKey");
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", () => {
+    adminKey = "";
+    sessionStorage.removeItem("monacoAdminKey");
 
-  $("#panelView").hidden = true;
-  $("#loginView").hidden = false;
+    const panelView = $("#panelView");
+    const loginView = $("#loginView");
+    const passwordInput = $("#adminPassword");
 
-  $("#adminPassword").value = "";
-};
+    if (panelView) panelView.hidden = true;
+    if (loginView) loginView.hidden = false;
+    if (passwordInput) passwordInput.value = "";
+  });
+}
 
 // ==========================================
 // PESTAÑAS DEL ADMINISTRADOR
 // ==========================================
 
-document.querySelectorAll(".tab").forEach(b => {
-  b.onclick = () => {
-    document.querySelectorAll(".tab").forEach(x => {
-      x.classList.toggle("active", x === b);
+document.querySelectorAll(".tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.classList.toggle("active", tab === button);
     });
 
-    document.querySelectorAll(".tab-panel").forEach(x => {
-      x.hidden = x.id !== b.dataset.tab;
+    document.querySelectorAll(".tab-panel").forEach((panel) => {
+      panel.hidden = panel.id !== button.dataset.tab;
     });
-  };
+  });
 });
 
 // ==========================================
@@ -344,245 +403,226 @@ document.querySelectorAll(".tab").forEach(b => {
 
 let imageData = "";
 
-$("#newsImage").onchange = e => {
-  const f = e.target.files[0];
+const newsImage = $("#newsImage");
 
-  if (!f) return;
+if (newsImage) {
+  newsImage.addEventListener("change", (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
 
-  if (f.size > 3 * 1024 * 1024) {
-    alert("La imagen debe pesar menos de 3 MB.");
-    e.target.value = "";
-    return;
-  }
+    if (file.size > 3 * 1024 * 1024) {
+      alert("La imagen debe pesar menos de 3 MB.");
+      event.target.value = "";
+      return;
+    }
 
-  if (!f.type.startsWith("image/")) {
-    alert("Seleccioná un archivo de imagen.");
-    e.target.value = "";
-    return;
-  }
+    if (!file.type.startsWith("image/")) {
+      alert("Seleccioná un archivo de imagen.");
+      event.target.value = "";
+      return;
+    }
 
-  const reader = new FileReader();
+    const reader = new FileReader();
 
-  reader.onload = () => {
-    imageData = reader.result;
+    reader.onload = () => {
+      imageData = String(reader.result || "");
+      const preview = $("#imagePreview");
 
-    $("#imagePreview").innerHTML =
-      `<img src="${imageData}" alt="Vista previa">`;
-  };
+      if (preview) {
+        preview.innerHTML = `<img src="${esc(imageData)}" alt="Vista previa">`;
+      }
+    };
 
-  reader.readAsDataURL(f);
-};
+    reader.readAsDataURL(file);
+  });
+}
 
 // ==========================================
 // LIMPIAR FORMULARIO DE NOTICIAS
 // ==========================================
 
 function resetNews() {
-  $("#newsForm").reset();
+  const form = $("#newsForm");
+  const newsId = $("#newsId");
+  const preview = $("#imagePreview");
 
-  $("#newsId").value = "";
+  if (form) form.reset();
+  if (newsId) newsId.value = "";
+
   imageData = "";
-
-  $("#imagePreview").innerHTML = "";
+  if (preview) preview.innerHTML = "";
 }
 
-$("#resetNews").onclick = resetNews;
+const resetNewsButton = $("#resetNews");
+if (resetNewsButton) resetNewsButton.addEventListener("click", resetNews);
 
 // ==========================================
 // GUARDAR NOTICIAS
 // ==========================================
 
-$("#newsForm").onsubmit = async e => {
-  e.preventDefault();
+const newsForm = $("#newsForm");
 
-  try {
-    await api("save-news", {
-      item: {
-        id: $("#newsId").value || crypto.randomUUID(),
+if (newsForm) {
+  newsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-        title: $("#newsTitle").value.trim(),
+    try {
+      const currentId = $("#newsId")?.value || "";
+      const existingImage = data.news.find((item) => item.id === currentId)?.image;
 
-        description: $("#newsDesc").value.trim(),
+      await api("save-news", {
+        item: {
+          id: currentId || crypto.randomUUID(),
+          title: $("#newsTitle")?.value.trim() || "",
+          description: $("#newsDesc")?.value.trim() || "",
+          image: imageData || existingImage || "",
+          createdAt: Date.now()
+        }
+      });
 
-        image:
-          imageData ||
-          data.news.find(
-            x => x.id === $("#newsId").value
-          )?.image || "",
-
-        createdAt: Date.now()
-      }
-    });
-
-    resetNews();
-
-    await refreshAdmin();
-
-    loadPublic();
-
-    alert("Noticia guardada correctamente.");
-
-  } catch (err) {
-    alert(err.message);
-  }
-};
-
+      resetNews();
+      await refreshAdmin();
+      await loadPublic();
+      alert("Noticia guardada correctamente.");
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}
 // ==========================================
 // GUARDAR PROGRAMACIÓN
 // ==========================================
 
-$("#scheduleForm").onsubmit = async e => {
-  e.preventDefault();
+const scheduleForm = $("#scheduleForm");
 
-  try {
-    await api("save-schedule", {
-      item: {
-        id: $("#scheduleId").value || crypto.randomUUID(),
+if (scheduleForm) {
+  scheduleForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-        time: $("#scheduleTime").value,
+    try {
+      await api("save-schedule", {
+        item: {
+          id: $("#scheduleId")?.value || crypto.randomUUID(),
+          time: $("#scheduleTime")?.value || "",
+          title: $("#scheduleTitle")?.value.trim() || ""
+        }
+      });
 
-        title: $("#scheduleTitle").value.trim()
-      }
-    });
+      scheduleForm.reset();
+      const scheduleId = $("#scheduleId");
+      if (scheduleId) scheduleId.value = "";
 
-    $("#scheduleForm").reset();
-    $("#scheduleId").value = "";
-
-    await refreshAdmin();
-
-    loadPublic();
-
-    alert("Programación guardada.");
-
-  } catch (err) {
-    alert(err.message);
-  }
-};
+      await refreshAdmin();
+      await loadPublic();
+      alert("Programación guardada.");
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}
 
 // ==========================================
 // LIMPIAR PROGRAMACIÓN
 // ==========================================
 
-$("#resetSchedule").onclick = () => {
-  $("#scheduleForm").reset();
-  $("#scheduleId").value = "";
-};
+const resetSchedule = $("#resetSchedule");
+
+if (resetSchedule) {
+  resetSchedule.addEventListener("click", () => {
+    if ($("#scheduleForm")) $("#scheduleForm").reset();
+    if ($("#scheduleId")) $("#scheduleId").value = "";
+  });
+}
 
 // ==========================================
 // LISTAS DEL ADMINISTRADOR
 // ==========================================
 
 function renderAdminLists() {
+  const newsList = $("#adminNewsList");
+  const scheduleList = $("#adminScheduleList");
 
-  $("#adminNewsList").innerHTML =
-    (data.news || []).map(n => `
+  if (newsList) {
+    newsList.innerHTML = (data.news || []).map((news) => `
       <div class="admin-row">
-        <span>${esc(n.title)}</span>
-
-        <button class="edit" data-edit-news="${esc(n.id)}">
-          EDITAR
-        </button>
-
-        <button class="delete" data-del-news="${esc(n.id)}">
-          ELIMINAR
-        </button>
+        <span>${esc(news.title)}</span>
+        <button class="edit" data-edit-news="${esc(news.id)}">EDITAR</button>
+        <button class="delete" data-del-news="${esc(news.id)}">ELIMINAR</button>
       </div>
-    `).join("") ||
-    '<p class="muted">Todavía no hay noticias.</p>';
+    `).join("") || '<p class="muted">Todavía no hay noticias.</p>';
+  }
 
-  $("#adminScheduleList").innerHTML =
-    (data.schedule || []).map(p => `
+  if (scheduleList) {
+    scheduleList.innerHTML = (data.schedule || []).map((program) => `
       <div class="admin-row">
-        <span>${esc(p.time)} — ${esc(p.title)}</span>
-
-        <button class="edit" data-edit-schedule="${esc(p.id)}">
-          EDITAR
-        </button>
-
-        <button class="delete" data-del-schedule="${esc(p.id)}">
-          ELIMINAR
-        </button>
+        <span>${esc(program.time)} — ${esc(program.title)}</span>
+        <button class="edit" data-edit-schedule="${esc(program.id)}">EDITAR</button>
+        <button class="delete" data-del-schedule="${esc(program.id)}">ELIMINAR</button>
       </div>
-    `).join("") ||
-    '<p class="muted">Todavía no hay programas.</p>';
+    `).join("") || '<p class="muted">Todavía no hay programas.</p>';
+  }
 }
 
 // ==========================================
 // EDITAR Y ELIMINAR NOTICIAS Y PROGRAMAS
 // ==========================================
 
-document.addEventListener("click", async e => {
-  const t = e.target;
+document.addEventListener("click", async (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
 
-  if (!(t instanceof Element)) return;
+  const editNewsId = target.closest("[data-edit-news]")?.dataset.editNews;
+  const deleteNewsId = target.closest("[data-del-news]")?.dataset.delNews;
+  const editScheduleId = target.closest("[data-edit-schedule]")?.dataset.editSchedule;
+  const deleteScheduleId = target.closest("[data-del-schedule]")?.dataset.delSchedule;
 
-  if (t.dataset.editNews) {
-    const n = data.news.find(
-      x => x.id === t.dataset.editNews
-    );
+  if (editNewsId) {
+    const news = data.news.find((item) => item.id === editNewsId);
+    if (!news) return;
 
-    if (!n) return;
+    if ($("#newsId")) $("#newsId").value = news.id;
+    if ($("#newsTitle")) $("#newsTitle").value = news.title || "";
+    if ($("#newsDesc")) $("#newsDesc").value = news.description || "";
 
-    $("#newsId").value = n.id;
-    $("#newsTitle").value = n.title;
-    $("#newsDesc").value = n.description;
+    imageData = news.image || "";
+    if ($("#imagePreview")) {
+      $("#imagePreview").innerHTML = imageData
+        ? `<img src="${esc(imageData)}" alt="">`
+        : "";
+    }
 
-    imageData = n.image || "";
-
-    $("#imagePreview").innerHTML = imageData
-      ? `<img src="${esc(imageData)}" alt="">`
-      : "";
-
-    $("#newsAdmin").scrollIntoView({
-      behavior: "smooth"
-    });
+    $("#newsAdmin")?.scrollIntoView({ behavior: "smooth" });
   }
 
-  if (t.dataset.delNews &&
-      confirm("¿Eliminar esta noticia?")) {
-
+  if (deleteNewsId && confirm("¿Eliminar esta noticia?")) {
     try {
-      await api("delete-news", {
-        id: t.dataset.delNews
-      });
-
+      await api("delete-news", { id: deleteNewsId });
       await refreshAdmin();
-      loadPublic();
-
-    } catch (x) {
-      alert(x.message);
+      await loadPublic();
+    } catch (error) {
+      alert(error.message);
     }
   }
 
-  if (t.dataset.editSchedule) {
-    const p = data.schedule.find(
-      x => x.id === t.dataset.editSchedule
-    );
+  if (editScheduleId) {
+    const program = data.schedule.find((item) => item.id === editScheduleId);
+    if (!program) return;
 
-    if (!p) return;
-
-    $("#scheduleId").value = p.id;
-    $("#scheduleTime").value = p.time;
-    $("#scheduleTitle").value = p.title;
+    if ($("#scheduleId")) $("#scheduleId").value = program.id;
+    if ($("#scheduleTime")) $("#scheduleTime").value = program.time || "";
+    if ($("#scheduleTitle")) $("#scheduleTitle").value = program.title || "";
   }
 
-  if (t.dataset.delSchedule &&
-      confirm("¿Eliminar este programa?")) {
-
+  if (deleteScheduleId && confirm("¿Eliminar este programa?")) {
     try {
-      await api("delete-schedule", {
-        id: t.dataset.delSchedule
-      });
-
+      await api("delete-schedule", { id: deleteScheduleId });
       await refreshAdmin();
-      loadPublic();
-
-    } catch (x) {
-      alert(x.message);
+      await loadPublic();
+    } catch (error) {
+      alert(error.message);
     }
   }
 });
-
 // ==========================================
 // COMPARTIR PÁGINA
 // ==========================================
@@ -590,29 +630,26 @@ document.addEventListener("click", async e => {
 async function sharePage() {
   const info = {
     title: "MONACO 98.7 FM",
-
     text: "Escuchá MONACO 98.7 FM — Gral. Belgrano, Formosa",
-
     url: location.href
   };
 
   try {
     if (navigator.share) {
       await navigator.share(info);
-
-    } else {
+    } else if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(location.href);
-
       alert("Enlace copiado.");
+    } else {
+      prompt("Copiá el enlace de MONACO FM:", location.href);
     }
-
-  } catch (e) {
-    // El usuario puede cancelar el menú de compartir.
+  } catch (error) {
+    // El usuario puede cancelar el menú para compartir.
   }
 }
 
-$("#shareBtn").onclick = sharePage;
-$("#shareBtn2").onclick = sharePage;
+$("#shareBtn")?.addEventListener("click", sharePage);
+$("#shareBtn2")?.addEventListener("click", sharePage);
 
 // ==========================================
 // CARGAR INFORMACIÓN PÚBLICA
@@ -626,17 +663,16 @@ loadPublic();
 
 if (adminKey) {
   api("admin-list")
-    .then(d => {
-      data = d;
+    .then((result) => {
+      data = result;
 
-      $("#loginView").hidden = true;
-      $("#panelView").hidden = false;
+      if ($("#loginView")) $("#loginView").hidden = true;
+      if ($("#panelView")) $("#panelView").hidden = false;
 
       renderAdminLists();
     })
     .catch(() => {
       adminKey = "";
-
       sessionStorage.removeItem("monacoAdminKey");
     });
 }
@@ -646,35 +682,30 @@ if (adminKey) {
 // ==========================================
 
 let deferredPrompt = null;
-
 const banner = $("#installBanner");
 
-window.addEventListener("beforeinstallprompt", e => {
-  e.preventDefault();
-
-  deferredPrompt = e;
-
-  banner.hidden = false;
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredPrompt = event;
+  if (banner) banner.hidden = false;
 });
 
-$("#installBtn").onclick = async () => {
+$("#installBtn")?.addEventListener("click", async () => {
   if (!deferredPrompt) return;
 
   deferredPrompt.prompt();
-
   await deferredPrompt.userChoice;
 
   deferredPrompt = null;
+  if (banner) banner.hidden = true;
+});
 
-  banner.hidden = true;
-};
-
-$("#dismissInstall").onclick = () => {
-  banner.hidden = true;
-};
+$("#dismissInstall")?.addEventListener("click", () => {
+  if (banner) banner.hidden = true;
+});
 
 window.addEventListener("appinstalled", () => {
-  banner.hidden = true;
+  if (banner) banner.hidden = true;
 });
 
 // ==========================================
@@ -685,6 +716,8 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/service-worker.js")
-      .catch(() => {});
+      .catch((error) => {
+        console.warn("No se pudo registrar el Service Worker:", error);
+      });
   });
 }
