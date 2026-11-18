@@ -13,7 +13,7 @@ const statusText = $("#playerStatus");
 // REPRODUCTOR DE RADIO EN VIVO
 // ==========================================
 
-const RADIO_URL = "/.netlify/functions/proxy";
+const RADIO_URL = "/proxy";
 
 let userPaused = true;
 let reconnectTimer = null;
