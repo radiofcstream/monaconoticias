@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#06130c"><meta name="description" content="MONACO 98.7 FM - Gral. Belgrano, Formosa. Radio en vivo, noticias y programación.">
+<title>MONACO 98.7 FM — En vivo</title>
+<link rel="icon" type="image/png" href="/assets/monaco.png"><link rel="apple-touch-icon" href="/assets/monaco.png">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#inicio"><img src="/assets/monaco.png" alt="MONACO FM"><span>MONACO <b>98.7 FM</b></span></a>
+  <nav><a href="#inicio">INICIO</a><a href="#noticias">NOTICIAS</a><a href="#programacion">PROGRAMACIÓN</a><a href="#escuchanos">ESCUCHANOS</a></nav>
+  <button class="share" id="shareBtn">↗ COMPARTIR</button>
+</header>
+<main>
+<section class="hero" id="inicio">
+  <img class="hero-bg" src="/assets/portada.png" alt="">
+  <div class="hero-shade"></div>
+  <div class="hero-copy"><span class="eyebrow">RADIO EN VIVO</span><h1>MONACO <em>98.7</em> FM</h1>
+  <p>Gral. Belgrano - Formosa</p><a class="listen-btn" href="#escuchanos">▶ ESCUCHANOS EN VIVO</a></div>
+  <span class="signature">RadioFCstream</span>
+</section>
+<section class="live-section" id="escuchanos">
+  <div><span class="eyebrow">TRANSMISIÓN EN DIRECTO</span><h2>Estamos en el aire</h2><p class="muted">Escuchá MONACO FM 98.7 desde cualquier dispositivo.</p></div>
+  <div class="player"><button id="playBtn" class="play" aria-label="Reproducir">▶</button><div class="player-info"><strong>EN VIVO · MONACO FM 98.7</strong><small id="playerStatus">Presioná reproducir para escuchar la radio</small><div class="equalizer"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><span class="live-pill">● EN VIVO</span></div>
+  <audio id="radioAudio" preload="none" crossorigin="anonymous"></audio>
+</section>
+<section class="section" id="noticias"><div class="section-head"><div><span class="eyebrow">ACTUALIDAD</span><h2>Últimas noticias</h2></div></div><div id="newsGrid" class="news-grid"><p class="muted">Cargando noticias...</p></div></section>
+<section class="section schedule-section" id="programacion"><div class="section-head"><div><span class="eyebrow">EN NUESTRA RADIO</span><h2>Programación del día</h2></div></div><div id="scheduleList" class="schedule-list"><p class="muted">Cargando programación...</p></div></section>
+</main>
+<footer><img src="/assets/monaco.png" alt="" width="38" height="38"><div><strong>MONACO 98.7 FM</strong><small>Gral. Belgrano - Formosa · RadioFCstream</small></div><button class="share footer-share" id="shareBtn2">↗ COMPARTIR PÁGINA</button></footer>
+<button id="adminTrigger" class="admin-trigger" title="Administración" aria-label="Administración"></button>
+<div id="adminModal" class="modal" aria-hidden="true"><div class="modal-card"><button class="close" id="closeAdmin" aria-label="Cerrar">×</button>
+<div id="loginView"><span class="eyebrow">ACCESO PRIVADO</span><h2>Administración</h2><form id="loginForm"><label>Contraseña<input id="adminPassword" type="password" autocomplete="current-password" required></label><button class="primary" type="submit">INGRESAR</button><p id="loginError" class="error"></p></form></div>
+<div id="panelView" hidden><span class="eyebrow">PANEL DE CONTROL</span><h2>Administrador MONACO</h2><div class="tabs"><button class="tab active" data-tab="newsAdmin">Noticias</button><button class="tab" data-tab="scheduleAdmin">Programación</button></div>
+<div id="newsAdmin" class="tab-panel"><h3>Publicar noticia</h3><form id="newsForm"><input type="hidden" id="newsId"><label>Título<input id="newsTitle" maxlength="120" required></label><label>Descripción<textarea id="newsDesc" rows="4" maxlength="1200" required></textarea></label><label class="file-label">Cargar foto<input id="newsImage" type="file" accept="image/*"></label><div id="imagePreview" class="image-preview"></div><div class="form-actions"><button class="primary" type="submit">GUARDAR NOTICIA</button><button class="secondary" type="button" id="resetNews">LIMPIAR</button></div></form><h3>Noticias guardadas</h3><div id="adminNewsList" class="admin-list"></div></div>
+<div id="scheduleAdmin" class="tab-panel" hidden><h3>Agregar programación</h3><form id="scheduleForm"><input type="hidden" id="scheduleId"><label>Hora<input id="scheduleTime" type="time" required></label><label>Título del programa<input id="scheduleTitle" maxlength="100" required></label><div class="form-actions"><button class="primary" type="submit">GUARDAR PROGRAMA</button><button class="secondary" type="button" id="resetSchedule">LIMPIAR</button></div></form><h3>Programas cargados</h3><div id="adminScheduleList" class="admin-list"></div></div>
+<button id="logoutBtn" class="logout">CERRAR SESIÓN</button></div>
+</div></div>
+<div id="installBanner" class="install-banner" hidden><span>Instalá MONACO FM en tu dispositivo</span><button id="installBtn" class="primary">INSTALAR</button><button id="dismissInstall" class="dismiss">×</button></div>
+<script src="/app.js"></script>
+</body></html>
