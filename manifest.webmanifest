@@ -1,18 +1,20 @@
 {
+  "id": "/",
   "name": "MONACO 98.7 FM",
   "short_name": "MONACO FM",
-  "description": "Radio en vivo - Gral. Belgrano, Formosa",
+  "description": "Escuchá MONACO FM en vivo desde General Belgrano, Formosa.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#050b08",
-  "theme_color": "#06130c",
+  "background_color": "#001a00",
+  "theme_color": "#001a00",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "/assets/monaco.png",
+      "src": "/monaco.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

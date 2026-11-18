@@ -1,23 +1,28 @@
-MONACO 98.7 FM — PAQUETE NETLIFY
+MONACO 98.7 FM - paquete Cloudflare Pages
+==========================================
 
-1) Subí el contenido de esta carpeta (no la carpeta comprimida dentro de otra carpeta) a un repositorio GitHub y conectalo con Netlify, o arrastrá el ZIP a Netlify Drop.
-2) Para guardar noticias/programación de forma permanente, vinculá el sitio a un repositorio Git y habilitá Netlify Functions. La aplicación usa Netlify Blobs; el paquete incluye package.json para instalar @netlify/blobs.
-3) En Netlify > Site configuration > Environment variables agregá:
-   MONACO_ADMIN_PASSWORD = monaco2026
-   (Podés cambiarla por otra clave más segura. Si no la configurás, el código usa monaco2026 como clave inicial.)
-4) Después de agregar variables, hacé un nuevo deploy.
-5) El acceso al administrador está oculto en la esquina inferior derecha: hacé clic en esa esquina.
-6) Las noticias y la programación se guardan en Netlify Blobs; no se guardan en una carpeta /uploads del sitio estático. Las imágenes se guardan como datos en Blobs.
-7) Reemplazá assets/monaco.png y assets/portada.png por tus archivos PNG reales, conservando exactamente esos nombres. El PNG del logo se usa también como icono de pestaña y de instalación.
-8) La instalación PWA aparece desde el navegador cuando se cumplen los requisitos del navegador. En iPhone/iPad se instala desde Compartir > Añadir a pantalla de inicio.
-9) La radio se reproduce por /.netlify/functions/proxy, que intenta conectarse al servidor indicado. Un proxy no puede garantizar disponibilidad si el servidor de origen bloquea conexiones, exige cabeceras especiales o está fuera de servicio.
+CONTENIDO
+- index.html
+- functions/radio/stream.js
+- sw.js
+- manifest.webmanifest
 
-DATOS DE TRANSMISIÓN CONFIGURADOS
-Host: uk2freenew.listen2myradio.com
-IP: 88.150.230.110
-Puerto: 29986
-Mount: /stream
-URL de origen usada: http://uk2freenew.listen2myradio.com:29986/stream
+INSTALACIÓN
+1. Hacé una copia de seguridad de tu repositorio actual.
+2. Subí/reemplazá index.html, sw.js y manifest.webmanifest.
+3. Creá functions/radio/stream.js respetando exactamente esa ruta.
+4. Conservá monaco.png en la raíz del proyecto.
+5. En Cloudflare Pages > Settings > Variables and Secrets, creá:
+   Nombre: RADIO_STREAM_URL
+   Valor: la URL exacta del servidor de origen que actualmente usa el proxy que ya funciona.
+6. Guardá y volvé a desplegar.
 
-IMPORTANTE SOBRE SEGURIDAD
-La contraseña inicial solicitada es monaco2026. Para producción, cambiá la variable MONACO_ADMIN_PASSWORD en Netlify por una clave privada. No compartas la contraseña.
+IMPORTANTE
+- Este paquete configura solamente la web/reproductor y el endpoint de audio.
+- No incluye la API de noticias/administración de Netlify. No borres ni reemplaces
+  tus funciones existentes hasta migrarlas por separado.
+- No se puede garantizar que Cloudflare pueda alcanzar cualquier puerto de origen.
+  Si el origen usa un puerto no permitido, el endpoint devolverá 502 y hará falta
+  un relay/servidor intermediario compatible.
+- El paquete no incluye monaco.png porque ese archivo debe conservarse desde tu repo.
+- No elimines functions/proxy.js todavía; primero comprobá el endpoint nuevo.

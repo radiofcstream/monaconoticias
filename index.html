@@ -1,43 +1,211 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#06130c"><meta name="description" content="MONACO 98.7 FM - Gral. Belgrano, Formosa. Radio en vivo, noticias y programación.">
-<title>MONACO 98.7 FM — En vivo</title>
-<link rel="icon" type="image/png" href="/assets/monaco.png"><link rel="apple-touch-icon" href="/assets/monaco.png">
-<link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#001a00">
+<meta name="description" content="Escuchá MONACO FM en vivo.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/monaco.png">
+<link rel="apple-touch-icon" href="/monaco.png">
+<title>MONACO FM</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;font-family:Arial,Helvetica,sans-serif}
+body{background:radial-gradient(circle at 50% 25%,#39ff14 0%,transparent 38%),radial-gradient(circle at 20% 80%,#00ff66 0%,transparent 35%),radial-gradient(circle at 90% 70%,#1aff00 0%,transparent 30%),linear-gradient(160deg,#001a00,#000 55%,#003b0b);color:white}
+body:before{content:"";position:fixed;width:500px;height:500px;border-radius:50%;background:rgba(57,255,20,.20);filter:blur(100px);top:30%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.app{width:100%;height:100vh;height:100dvh;position:relative;display:flex;flex-direction:column;align-items:center}
+.share-button{position:absolute;top:22px;left:18px;z-index:20;border:1px solid rgba(255,255,255,.65);border-radius:20px;background:rgba(0,0,0,.35);color:white;padding:9px 12px;font-weight:bold;cursor:pointer}
+.content{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;align-items:center;padding-top:clamp(90px,19vh,198px);padding-bottom:60px}
+.radio-image{width:254px;height:254px;max-width:65vw;max-height:32vh;object-fit:contain;border-radius:9px;border:2px solid rgba(255,255,255,.9);box-shadow:0 0 25px rgba(57,255,20,.6),0 0 60px rgba(0,255,80,.35)}
+.equalizer{height:55px;margin-top:31px;display:flex;align-items:end;gap:3px}
+.equalizer span{display:block;width:7px;background:#39ff14;animation:equalizer 1s infinite ease-in-out}
+.equalizer span:nth-child(1){height:18px;animation-delay:.1s}.equalizer span:nth-child(2){height:30px;animation-delay:.2s}.equalizer span:nth-child(3){height:45px;animation-delay:.3s}.equalizer span:nth-child(4){height:23px;animation-delay:.4s}.equalizer span:nth-child(5){height:38px;animation-delay:.5s}.equalizer span:nth-child(6){height:28px;animation-delay:.6s}.equalizer span:nth-child(7){height:48px;animation-delay:.7s}.equalizer span:nth-child(8){height:20px;animation-delay:.8s}
+@keyframes equalizer{0%,100%{transform:scaleY(.45)}50%{transform:scaleY(1)}}
+.radio-name{margin-top:27px;font-size:25px;font-weight:bold;text-align:center}
+.radio-description{margin-top:7px;font-size:19px;text-align:center;opacity:.95}
+.controls{width:100%;display:flex;align-items:center;justify-content:center;gap:70px;margin-top:auto;margin-bottom:clamp(55px,12vh,132px)}
+.control-btn{border:0;background:transparent;color:white;cursor:pointer;width:48px;height:48px;display:flex;align-items:center;justify-content:center;position:relative}
+.timer-icon{width:24px;height:24px;border:2px solid white;border-radius:50%;position:relative}
+.timer-icon:before{content:"";position:absolute;width:2px;height:8px;background:white;left:10px;top:4px}
+.timer-icon:after{content:"";position:absolute;width:7px;height:2px;background:white;left:10px;top:11px;transform:rotate(35deg);transform-origin:left center}
+.volume-icon{font-size:29px;line-height:1}
+.play-button{width:90px;height:90px;border-radius:50%;border:none;background:linear-gradient(145deg,#39ff14,#00b83d);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 25px rgba(0,0,0,.25),0 0 25px rgba(57,255,20,.5);transition:.2s}
+.play-button:active{transform:scale(.92)}
+.play-icon{font-size:42px;font-weight:bold;line-height:1}
+.volume-slider{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:40px;height:150px;display:none}
+.volume-slider.show{display:flex;align-items:center;justify-content:center}
+.volume-slider input{width:130px;height:6px;accent-color:#39ff14;transform:rotate(-90deg);cursor:pointer}
+.firma{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,.65);letter-spacing:.3px}
+.install-button{position:absolute;top:22px;right:18px;border:1px solid rgba(255,255,255,.65);border-radius:20px;background:rgba(0,0,0,.35);color:white;padding:9px 12px;font-weight:bold;cursor:pointer;display:none}
+.install-help{position:absolute;z-index:30;top:62px;right:12px;max-width:260px;padding:12px;border-radius:10px;background:#102510;color:white;font-size:13px;display:none;line-height:1.45}
+.install-help.show{display:block}
+@media(max-height:750px){.content{padding-top:clamp(70px,12vh,125px);padding-bottom:50px}.radio-image{width:220px;height:220px}.equalizer{margin-top:20px}.radio-name{margin-top:15px}.controls{margin-bottom:65px}}
+@media(max-width:360px){.radio-image{width:205px;height:205px}.controls{gap:45px}.play-button{width:78px;height:78px}}
+</style>
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="#inicio"><img src="/assets/monaco.png" alt="MONACO FM"><span>MONACO <b>98.7 FM</b></span></a>
-  <nav><a href="#inicio">INICIO</a><a href="#noticias">NOTICIAS</a><a href="#programacion">PROGRAMACIÓN</a><a href="#escuchanos">ESCUCHANOS</a></nav>
-  <button class="share" id="shareBtn">↗ COMPARTIR</button>
-</header>
-<main>
-<section class="hero" id="inicio">
-  <img class="hero-bg" src="/assets/portada.png" alt="">
-  <div class="hero-shade"></div>
-  <div class="hero-copy"><span class="eyebrow">RADIO EN VIVO</span><h1>MONACO <em>98.7</em> FM</h1>
-  <p>Gral. Belgrano - Formosa</p><a class="listen-btn" href="#escuchanos">▶ ESCUCHANOS EN VIVO</a></div>
-  <span class="signature">RadioFCstream</span>
-</section>
-<section class="live-section" id="escuchanos">
-  <div><span class="eyebrow">TRANSMISIÓN EN DIRECTO</span><h2>Estamos en el aire</h2><p class="muted">Escuchá MONACO FM 98.7 desde cualquier dispositivo.</p></div>
-  <div class="player"><button id="playBtn" class="play" aria-label="Reproducir">▶</button><div class="player-info"><strong>EN VIVO · MONACO FM 98.7</strong><small id="playerStatus">Presioná reproducir para escuchar la radio</small><div class="equalizer"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><span class="live-pill">● EN VIVO</span></div>
-  <audio id="radioAudio" preload="none" crossorigin="anonymous"></audio>
-</section>
-<section class="section" id="noticias"><div class="section-head"><div><span class="eyebrow">ACTUALIDAD</span><h2>Últimas noticias</h2></div></div><div id="newsGrid" class="news-grid"><p class="muted">Cargando noticias...</p></div></section>
-<section class="section schedule-section" id="programacion"><div class="section-head"><div><span class="eyebrow">EN NUESTRA RADIO</span><h2>Programación del día</h2></div></div><div id="scheduleList" class="schedule-list"><p class="muted">Cargando programación...</p></div></section>
-</main>
-<footer><img src="/assets/monaco.png" alt="" width="38" height="38"><div><strong>MONACO 98.7 FM</strong><small>Gral. Belgrano - Formosa · RadioFCstream</small></div><button class="share footer-share" id="shareBtn2">↗ COMPARTIR PÁGINA</button></footer>
-<button id="adminTrigger" class="admin-trigger" title="Administración" aria-label="Administración"></button>
-<div id="adminModal" class="modal" aria-hidden="true"><div class="modal-card"><button class="close" id="closeAdmin" aria-label="Cerrar">×</button>
-<div id="loginView"><span class="eyebrow">ACCESO PRIVADO</span><h2>Administración</h2><form id="loginForm"><label>Contraseña<input id="adminPassword" type="password" autocomplete="current-password" required></label><button class="primary" type="submit">INGRESAR</button><p id="loginError" class="error"></p></form></div>
-<div id="panelView" hidden><span class="eyebrow">PANEL DE CONTROL</span><h2>Administrador MONACO</h2><div class="tabs"><button class="tab active" data-tab="newsAdmin">Noticias</button><button class="tab" data-tab="scheduleAdmin">Programación</button></div>
-<div id="newsAdmin" class="tab-panel"><h3>Publicar noticia</h3><form id="newsForm"><input type="hidden" id="newsId"><label>Título<input id="newsTitle" maxlength="120" required></label><label>Descripción<textarea id="newsDesc" rows="4" maxlength="1200" required></textarea></label><label class="file-label">Cargar foto<input id="newsImage" type="file" accept="image/*"></label><div id="imagePreview" class="image-preview"></div><div class="form-actions"><button class="primary" type="submit">GUARDAR NOTICIA</button><button class="secondary" type="button" id="resetNews">LIMPIAR</button></div></form><h3>Noticias guardadas</h3><div id="adminNewsList" class="admin-list"></div></div>
-<div id="scheduleAdmin" class="tab-panel" hidden><h3>Agregar programación</h3><form id="scheduleForm"><input type="hidden" id="scheduleId"><label>Hora<input id="scheduleTime" type="time" required></label><label>Título del programa<input id="scheduleTitle" maxlength="100" required></label><div class="form-actions"><button class="primary" type="submit">GUARDAR PROGRAMA</button><button class="secondary" type="button" id="resetSchedule">LIMPIAR</button></div></form><h3>Programas cargados</h3><div id="adminScheduleList" class="admin-list"></div></div>
-<button id="logoutBtn" class="logout">CERRAR SESIÓN</button></div>
-</div></div>
-<div id="installBanner" class="install-banner" hidden><span>Instalá MONACO FM en tu dispositivo</span><button id="installBtn" class="primary">INSTALAR</button><button id="dismissInstall" class="dismiss">×</button></div>
-<script src="/app.js"></script>
-</body></html>
+<div class="app">
+  <button class="share-button" id="shareButton" type="button" onclick="compartirRadio()" aria-label="Compartir MONACO FM">↗ Compartir</button>
+  <button class="install-button" id="installButton" type="button">＋ Instalar app</button>
+  <div class="install-help" id="installHelp"></div>
+  <div class="content">
+    <img class="radio-image" src="/monaco.png" alt="MONACO FM">
+    <div class="equalizer" id="equalizer" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="radio-name">MONACO FM</div>
+    <div class="radio-description">Gral. Belgrano - Formosa</div>
+    <div id="playerStatus" role="status" aria-live="polite" style="margin-top:10px;font-size:13px;opacity:.85">Listo para transmitir</div>
+    <div class="controls">
+      <button class="control-btn" onclick="temporizador()" aria-label="Temporizador"><div class="timer-icon"></div></button>
+      <button class="play-button" id="playButton" onclick="playRadio()" aria-label="Reproducir"><span class="play-icon" id="playIcon">▶</span></button>
+      <button class="control-btn volume" onclick="mostrarVolumen()" aria-label="Volumen">
+        <span class="volume-icon">🔊</span>
+        <div class="volume-slider" id="volumeSlider"><input type="range" min="0" max="1" step="0.01" value="1" id="volume" aria-label="Nivel de volumen"></div>
+      </button>
+    </div>
+  </div>
+  <div class="firma">RadioFcStream</div>
+</div>
+<audio id="radioPlayer" preload="none" playsinline></audio>
+<script>
+const STREAM_URL = "/radio/stream";
+const player = document.getElementById("radioPlayer");
+const playIcon = document.getElementById("playIcon");
+const volume = document.getElementById("volume");
+const status = document.getElementById("playerStatus");
+const equalizer = document.getElementById("equalizer");
+
+let userPaused = true;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+let sleepTimer = null;
+
+function setStatus(message) { status.textContent = message; }
+function updatePlayer(playing) {
+  playIcon.textContent = playing ? "Ⅱ" : "▶";
+  document.getElementById("playButton").setAttribute("aria-label", playing ? "Pausar" : "Reproducir");
+  equalizer.style.opacity = playing ? "1" : ".45";
+}
+function cancelReconnect() {
+  if (reconnectTimer !== null) clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+}
+function reconnectRadio() {
+  if (userPaused || reconnectTimer !== null) return;
+  const delay = Math.min(2500 * Math.pow(2, reconnectAttempts), 30000);
+  reconnectAttempts++;
+  setStatus("Señal interrumpida. Reconectando...");
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    if (userPaused) return;
+    try {
+      player.src = STREAM_URL + "?retry=" + Date.now();
+      player.load();
+      await player.play();
+    } catch (error) {
+      reconnectRadio();
+    }
+  }, delay);
+}
+async function playRadio() {
+  if (!player.paused) {
+    userPaused = true;
+    cancelReconnect();
+    player.pause();
+    updatePlayer(false);
+    setStatus("Reproducción pausada");
+    return;
+  }
+  userPaused = false;
+  reconnectAttempts = 0;
+  cancelReconnect();
+  setStatus("Conectando con MONACO FM...");
+  try {
+    player.src = STREAM_URL;
+    player.load();
+    await player.play();
+  } catch (error) {
+    setStatus("No se pudo iniciar. Reintentando...");
+    reconnectRadio();
+  }
+}
+player.addEventListener("playing", () => {
+  reconnectAttempts = 0;
+  cancelReconnect();
+  updatePlayer(true);
+  setStatus("MONACO FM · EN VIVO");
+});
+player.addEventListener("pause", () => updatePlayer(false));
+player.addEventListener("error", () => {
+  if (!userPaused) reconnectRadio();
+  else setStatus("Transmisión detenida");
+});
+player.addEventListener("ended", () => { if (!userPaused) reconnectRadio(); });
+player.addEventListener("stalled", () => { if (!userPaused) reconnectRadio(); });
+player.addEventListener("waiting", () => {
+  if (!userPaused) setStatus("Esperando señal...");
+});
+volume.addEventListener("input", () => { player.volume = Number(volume.value); });
+function mostrarVolumen() {
+  document.getElementById("volumeSlider").classList.toggle("show");
+}
+async function compartirRadio() {
+  const shareData = {title:"MONACO FM",text:"¡Escuchá MONACO FM en vivo!",url:location.href};
+  try {
+    if (navigator.share) await navigator.share(shareData);
+    else {
+      await navigator.clipboard.writeText(location.href);
+      alert("¡Enlace de MONACO FM copiado!");
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") prompt("Copiá el enlace:", location.href);
+  }
+}
+function temporizador() {
+  const minutos = prompt("¿Cuántos minutos querés escuchar la radio?");
+  if (!minutos || !Number.isFinite(Number(minutos)) || Number(minutos) <= 0) return;
+  clearTimeout(sleepTimer);
+  sleepTimer = setTimeout(() => {
+    userPaused = true;
+    cancelReconnect();
+    player.pause();
+    updatePlayer(false);
+    setStatus("Temporizador finalizado");
+  }, Number(minutos) * 60000);
+}
+let installPrompt = null;
+const installButton = document.getElementById("installButton");
+const installHelp = document.getElementById("installHelp");
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function showInstallHelp() {
+  installHelp.textContent = isIOS
+    ? "Para instalar MONACO FM: tocá Compartir en Safari y elegí Agregar a pantalla de inicio."
+    : "Abrí el menú del navegador y elegí Instalar aplicación o Agregar a pantalla principal.";
+  installHelp.classList.toggle("show");
+}
+if (!window.matchMedia("(display-mode: standalone)").matches && !navigator.standalone) {
+  installButton.style.display = "block";
+}
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  installPrompt = event;
+  installButton.style.display = "block";
+});
+installButton.addEventListener("click", async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    installButton.style.display = "none";
+  } else showInstallHelp();
+});
+window.addEventListener("appinstalled", () => {
+  installButton.style.display = "none";
+  installHelp.classList.remove("show");
+});
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(console.error));
+}
+</script>
+</body>
+</html>
